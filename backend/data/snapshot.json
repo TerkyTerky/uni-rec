@@ -1,0 +1,67 @@
+{
+  "users": {
+    "user_0": {
+      "user_id": "user_0",
+      "profile": { "age": 28, "city": "北京" },
+      "interests": ["科技", "财经"],
+      "meta": { "cold_start": false }
+    },
+    "user_1": {
+      "user_id": "user_1",
+      "profile": { "age": 34, "city": "上海" },
+      "interests": ["生活", "教育"],
+      "meta": { "cold_start": false }
+    }
+  },
+  "items": {
+    "item_0": {
+      "item_id": "item_0",
+      "title": "科技内容0",
+      "category": "科技",
+      "tags": ["科技", "教育"]
+    },
+    "item_1": {
+      "item_id": "item_1",
+      "title": "生活内容1",
+      "category": "生活",
+      "tags": ["生活", "娱乐"]
+    },
+    "item_2": {
+      "item_id": "item_2",
+      "title": "财经内容2",
+      "category": "财经",
+      "tags": ["财经", "科技"]
+    },
+    "item_3": {
+      "item_id": "item_3",
+      "title": "教育内容3",
+      "category": "教育",
+      "tags": ["教育", "生活"]
+    }
+  },
+  "behaviors": [
+    {
+      "user_id": "user_0",
+      "item_id": "item_0",
+      "action": "click",
+      "ts": 1700000000
+    },
+    {
+      "user_id": "user_0",
+      "item_id": "item_2",
+      "action": "like",
+      "ts": 1700000060
+    },
+    {
+      "user_id": "user_1",
+      "item_id": "item_1",
+      "action": "view",
+      "ts": 1700000120
+    }
+  ],
+  "social_edges": [
+    { "source": "user_0", "target": "user_1", "weight": 0.8, "type": "friend" }
+  ],
+  "feedback": [],
+  "last_recommendations": []
+}

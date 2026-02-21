@@ -1,0 +1,26 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.routes.api import router as api_router
+from app.services.data_store import init_store
+
+
+def create_app() -> FastAPI:
+    app = FastAPI(title="uni-rec")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @app.on_event("startup")
+    def load_data() -> None:
+        init_store()
+
+    app.include_router(api_router, prefix="/api")
+    return app
+
+
+app = create_app()
