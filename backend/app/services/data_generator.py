@@ -1,8 +1,10 @@
+import asyncio
 import random
 from typing import Any, Dict, List
 
+from app.core.llm import generate_reviews
 
-def generate_data(
+async def generate_data(
     users: int = 30,
     items: int = 80,
     behaviors_per_user: int = 20,
@@ -10,6 +12,39 @@ def generate_data(
     seed: int = 42,
 ) -> Dict[str, Any]:
     random.seed(seed)
+    
+    # Generate review templates using LLM in background
+    review_templates = []
+    try:
+        # Generate reviews for a few key product categories
+        tasks = [
+            generate_reviews(5, "笔记本电脑"),
+            generate_reviews(5, "智能手机"),
+            generate_reviews(5, "蓝牙耳机"),
+            generate_reviews(5, "智能音箱"),
+            generate_reviews(5, "运动相机"),
+            generate_reviews(5, "游戏手柄"),
+            generate_reviews(5, "路由器"),
+            generate_reviews(5, "4K显示器"),
+            generate_reviews(5, "机械键盘"),
+            generate_reviews(5, "智能手表"),
+            generate_reviews(5, "移动硬盘"),
+        ]
+        results = await asyncio.gather(*tasks)
+        for res in results:
+            review_templates.extend(res)
+    except Exception as e:
+        print(f"[DataGen] LLM review generation failed: {e}")
+        
+    if not review_templates:
+        review_templates = [
+            {"reviewText": "性价比很高。", "summary": "不错的选择"},
+            {"reviewText": "质量可以更好。", "summary": "一般"},
+            {"reviewText": "非常喜欢！", "summary": "优秀"},
+            {"reviewText": "不如预期。", "summary": "失望"},
+            {"reviewText": "如宣传所言。", "summary": "靠谱的产品"},
+        ]
+
     category_paths = [
         ["Electronics", "Computers & Accessories", "Laptops"],
         ["Electronics", "Computers & Accessories", "Storage"],
@@ -67,11 +102,16 @@ def generate_data(
             "price": round(random.uniform(19, 4999), 2),
             "imageURL": f"https://images.example.com/{asin}.jpg",
             "imageURLHighRes": f"https://images.example.com/{asin}_hr.jpg",
-            "also_buy": random.sample(list(items_map.keys()) or [asin], k=min(3, max(1, len(items_map)))),
-            "also_viewed": random.sample(list(items_map.keys()) or [asin], k=min(5, max(1, len(items_map)))),
+            "also_buy": [],
+            "also_viewed": [],
             "brand": brand,
             "categories": [category_path],
         }
+
+    item_ids = list(items_map.keys())
+    for item in items_map.values():
+        item["also_buy"] = random.sample(item_ids, k=min(3, len(item_ids)))
+        item["also_viewed"] = random.sample(item_ids, k=min(5, len(item_ids)))
 
     for i in range(users):
         reviewer_id = f"A{random.randint(1000000, 9999999)}"
@@ -85,14 +125,15 @@ def generate_data(
     for reviewer_id in users_map:
         for t in range(behaviors_per_user):
             asin = random.choice(list(items_map.keys()))
+            template = random.choice(review_templates)
             reviews.append(
                 {
                     "reviewerID": reviewer_id,
                     "asin": asin,
                     "reviewerName": users_map[reviewer_id]["reviewerName"],
                     "overall": random.choice([2.0, 3.0, 4.0, 5.0]),
-                    "reviewText": "Great value for the price and performance.",
-                    "summary": "Solid electronics choice",
+                    "reviewText": template.get("reviewText", "Nice product"),
+                    "summary": template.get("summary", "Review"),
                     "unixReviewTime": 1700000000 + t * 3600 + random.randint(0, 600),
                     "reviewTime": "01 01, 2018",
                     "vote": str(random.randint(0, 12)),

@@ -3,12 +3,12 @@ import os
 
 class Settings:
     def __init__(self) -> None:
-        self.modelscope_api_key = os.getenv("MODELSCOPE_API_KEY", "")
-        self.modelscope_api_base = os.getenv(
-            "MODELSCOPE_API_BASE",
-            "https://api-inference.modelscope.cn/v1/chat/completions",
+        self.ark_api_key = os.getenv("ARK_API_KEY", "e568f04e-3f64-4fe0-baf7-3fd6d154742c")
+        self.ark_api_base = os.getenv(
+            "ARK_API_BASE",
+            "https://ark.cn-beijing.volces.com/api/v3",
         )
-        self.modelscope_model = os.getenv("MODELSCOPE_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+        self.ark_model = os.getenv("ARK_MODEL_ID", "doubao-seed-2-0-pro-260215")
         self.data_dir = os.getenv("DATA_DIR", "")
 
 

@@ -28,8 +28,8 @@ def health() -> dict:
 
 
 @router.post("/data/generate", response_model=DataSnapshotResponse)
-def generate_snapshot(payload: DataGenerateRequest) -> DataSnapshotResponse:
-    data = generate_data(
+async def generate_snapshot(payload: DataGenerateRequest) -> DataSnapshotResponse:
+    data = await generate_data(
         users=payload.users,
         items=payload.items,
         behaviors_per_user=payload.behaviors_per_user,
