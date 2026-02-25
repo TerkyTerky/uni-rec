@@ -3,6 +3,7 @@ import * as echarts from "echarts"
 
 type Event = {
   unixReviewTime: number
+  overall: number
 }
 
 type Props = {
@@ -16,17 +17,36 @@ export default function TimelineChart({ events }: Props) {
     if (!chartRef.current) return
     const chart = echarts.init(chartRef.current)
     const option = {
-      tooltip: { trigger: "axis" },
+      tooltip: {
+        trigger: "axis",
+        formatter: (params: any) => {
+          const data = params[0].data
+          return `${params[0].name}<br/>评分: ${data}`
+        }
+      },
       xAxis: {
         type: "category",
-        data: events.map((e) => new Date(e.unixReviewTime * 1000).toLocaleTimeString())
+        name: "时间",
+        data: events.map((e) => new Date(e.unixReviewTime * 1000).toLocaleDateString())
       },
-      yAxis: { type: "value" },
+      yAxis: {
+        type: "value",
+        name: "评分",
+        min: 0,
+        max: 5,
+        interval: 1
+      },
       series: [
         {
-          data: events.map((_, index) => index + 1),
+          data: events.map((e) => e.overall),
           type: "line",
-          smooth: true
+          smooth: true,
+          markPoint: {
+            data: [
+              { type: "max", name: "最高分" },
+              { type: "min", name: "最低分" }
+            ]
+          }
         }
       ]
     }

@@ -19,10 +19,11 @@ type Props = {
 
 export default function RecommendationPanel({ summary, items, onFeedback }: Props) {
   const getLeafCategory = (categories?: string[][]) => {
-    if (!categories || categories.length === 0 || categories[0].length === 0) return "Unknown"
+    if (!categories || categories.length === 0 || !categories[0] || categories[0].length === 0) return "Unknown"
     return categories[0][categories[0].length - 1]
   }
 
+  if (!items) return null
   return (
     <Card>
       <CardHeader>
