@@ -1,5 +1,9 @@
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# Load .env file
+load_dotenv()
 
 from app.routes.api import router as api_router
 from app.services.data_store import init_store
@@ -16,8 +20,8 @@ def create_app() -> FastAPI:
     )
 
     @app.on_event("startup")
-    def load_data() -> None:
-        init_store()
+    async def load_data() -> None:
+        await init_store()
 
     app.include_router(api_router, prefix="/api")
     return app

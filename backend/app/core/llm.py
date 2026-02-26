@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, AsyncGenerator
 from volcenginesdkarkruntime import Ark
 
 from app.core.config import settings
@@ -10,6 +10,70 @@ def _get_client():
         base_url=settings.ark_api_base,
         api_key=settings.ark_api_key,
     )
+
+async def stream_reason(prompt: str, fallback: str) -> AsyncGenerator[str, None]:
+    """
+    流式生成推荐理由，支持返回思考过程（reasoning_content）和最终回答（content）。
+    Yields format: "TYPE:CONTENT"
+    - "THINK:xxx" -> 思考过程
+    - "TEXT:xxx" -> 最终回答片段
+    """
+    client = _get_client()
+    if not client:
+        yield f"TEXT:{fallback}"
+        return
+
+    try:
+        # Enable streaming
+        stream = client.responses.create(
+            model=settings.ark_model,
+            input=[
+                {
+                    "role": "system", 
+                    "content": "你是推荐系统助手，请分析用户兴趣并给出推荐理由。请先进行思考(Reasoning)，再给出简短的推荐理由(Answer)。"
+                },
+                {
+                    "role": "user", 
+                    "content": prompt
+                },
+            ],
+            stream=True
+        )
+        
+        for chunk in stream:
+            # Handle Ark SDK stream response structure
+            # 1. Reasoning content (Deep Thinking)
+            if hasattr(chunk, "output") and chunk.output:
+                for item in chunk.output:
+                    # Reasoning phase
+                    if hasattr(item, "type") and item.type == "reasoning":
+                         if hasattr(item, "summary") and item.summary:
+                             for sum_item in item.summary:
+                                 if hasattr(sum_item, "text") and sum_item.text:
+                                     yield f"THINK:{sum_item.text}"
+                    
+                    # Content phase
+                    elif hasattr(item, "type") and item.type == "message":
+                        if hasattr(item, "content") and item.content:
+                            for part in item.content:
+                                if hasattr(part, "text") and part.text:
+                                    yield f"TEXT:{part.text}"
+            
+            # Fallback for other SDK versions or standard OpenAI format
+            elif hasattr(chunk, "choices") and chunk.choices:
+                delta = chunk.choices[0].delta
+                
+                # Try to get reasoning content if available (standard OpenAI compatible)
+                if hasattr(delta, "reasoning_content") and delta.reasoning_content:
+                     yield f"THINK:{delta.reasoning_content}"
+                
+                # Standard content
+                if hasattr(delta, "content") and delta.content:
+                    yield f"TEXT:{delta.content}"
+
+    except Exception as e:
+        print(f"[LLM Error] stream_reason failed: {e}")
+        yield f"TEXT:{fallback}"
 
 async def generate_reason(prompt: str, fallback: str) -> str:
     client = _get_client()

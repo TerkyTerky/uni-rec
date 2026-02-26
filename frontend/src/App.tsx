@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { fetchEventSource } from "@microsoft/fetch-event-source"
 import {
   fetchMetrics,
   fetchSequence,
@@ -60,6 +61,7 @@ export default function App() {
   const [socialGraph, setSocialGraph] = useState<SocialGraphData>({ nodes: [], edges: [] })
   const [recommendations, setRecommendations] = useState<RecommendationItem[]>([])
   const [summary, setSummary] = useState("")
+  const [thinking, setThinking] = useState("")
   const [metrics, setMetrics] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(false)
 
@@ -75,28 +77,69 @@ export default function App() {
 
   const handleRecommend = async () => {
     setLoading(true)
-    const result = await requestRecommend({
-      reviewerID: params.reviewerID,
-      top_k: params.topK,
-      threshold: params.threshold,
-      mode: "auto",
-      use_llm: params.useLLM
-    })
-    setStartupType(result.data.startup_type)
-    setRecommendations(result.data.items)
-    setSummary(result.data.summary)
-    if (result.data.module === "sequence") {
-      const seq = await fetchSequence(params.reviewerID)
-      setSequenceEvents(seq.data.events)
-      setSocialGraph({ nodes: [], edges: [] })
-    } else {
-      const graph = await fetchSocialGraph(params.reviewerID)
-      setSocialGraph(graph.data)
-      setSequenceEvents([])
+    setThinking("")
+    setRecommendations([])
+    setSummary("计算中...")
+    
+    try {
+      await fetchEventSource("http://localhost:8000/api/recommend", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reviewerID: params.reviewerID,
+          top_k: params.topK,
+          threshold: params.threshold,
+          mode: "auto",
+          use_llm: params.useLLM
+        }),
+        onmessage(ev) {
+          if (ev.event === "done") {
+             // Close connection
+             return
+          }
+          
+          const data = JSON.parse(ev.data)
+          
+          if (!ev.event) {
+            // Initial payload
+            setStartupType(data.startup_type)
+            setRecommendations(data.items)
+            setSummary(data.summary)
+            
+            // Trigger visual updates
+            if (data.module === "sequence") {
+               fetchSequence(params.reviewerID).then(res => setSequenceEvents(res.data.events))
+               fetchSocialGraph(params.reviewerID).then(res => setSocialGraph(res.data))
+            } else {
+               fetchSocialGraph(params.reviewerID).then(res => setSocialGraph(res.data))
+               fetchSequence(params.reviewerID).then(res => setSequenceEvents(res.data.events))
+            }
+          } else if (ev.event === "thinking") {
+            setThinking(prev => prev + data.content)
+          } else if (ev.event === "reasoning") {
+            // Can display incremental reasoning if needed
+          } else if (ev.event === "update") {
+            setRecommendations(data.items)
+          }
+        },
+        onerror(err) {
+           console.error("SSE error:", err)
+           setLoading(false)
+           throw err
+        },
+        onclose() {
+           setLoading(false)
+        }
+      })
+    } catch (e) {
+      console.error(e)
+    } finally {
+       setLoading(false)
+       const metricRes = await fetchMetrics()
+       setMetrics(metricRes.data.metrics)
     }
-    const metricRes = await fetchMetrics()
-    setMetrics(metricRes.data.metrics)
-    setLoading(false)
   }
 
   const handleFeedback = async (asin: string, action: "like" | "dislike" | "save") => {
@@ -142,17 +185,22 @@ export default function App() {
           />
           <MetricsDashboard metrics={metrics} />
         </div>
-        <div>
-          <Card>
+        <div className="flex flex-col gap-4">
+          <Card className={startupType === "hot" ? "border-primary shadow-md ring-1 ring-primary" : "opacity-60 grayscale"}>
             <CardHeader>
-              <CardTitle>{moduleTitle}可视化</CardTitle>
+              <CardTitle>序列推荐可视化 (热启动)</CardTitle>
             </CardHeader>
             <CardContent>
-              {startupType === "hot" ? (
-                <TimelineChart events={sequenceEvents} />
-              ) : (
-                <SocialGraph graph={socialGraph} />
-              )}
+              <TimelineChart events={sequenceEvents} />
+            </CardContent>
+          </Card>
+          
+          <Card className={startupType === "cold" ? "border-primary shadow-md ring-1 ring-primary" : "opacity-60 grayscale"}>
+            <CardHeader>
+              <CardTitle>社交推荐可视化 (冷启动)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SocialGraph graph={socialGraph} />
             </CardContent>
           </Card>
         </div>
@@ -160,6 +208,7 @@ export default function App() {
           <RecommendationPanel
             summary={summary}
             items={recommendations}
+            thinking={thinking}
             onFeedback={handleFeedback}
           />
         </div>

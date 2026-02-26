@@ -36,3 +36,4 @@ export const requestRecommend = (payload: RecommendPayload) => client.post("/rec
 export const sendFeedback = (payload: FeedbackPayload) => client.post("/feedback", payload)
 export const fetchMetrics = () => client.get("/metrics")
 export const generateData = (payload: GeneratePayload) => client.post("/data/generate", payload)
+export const fetchUsers = () => client.get("/users")

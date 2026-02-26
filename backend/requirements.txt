@@ -3,5 +3,10 @@ uvicorn[standard]==0.30.6
 pydantic==2.8.2
 httpx==0.27.2
 volcengine-python-sdk[ark]
+sqlalchemy
+pymysql
+aiomysql
+certifi
+python-dotenv
 
 

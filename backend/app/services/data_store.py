@@ -1,48 +1,33 @@
-import json
-from pathlib import Path
-from typing import Any, Dict
+import os
+from typing import AsyncGenerator
 
-from app.core.config import settings
-from app.services.data_generator import generate_data
+from dotenv import load_dotenv
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
+# Load .env
+load_dotenv()
 
-BASE_DIR = Path(__file__).resolve().parents[2]
-DATA_DIR = Path(settings.data_dir) if settings.data_dir else BASE_DIR / "data"
+# MySQL Configuration
+MYSQL_USER = os.getenv("MYSQL_USER", "root")
+MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
+MYSQL_HOST = os.getenv("MYSQL_HOST", "127.0.0.1")
+MYSQL_PORT = os.getenv("MYSQL_PORT", "3306")
+MYSQL_DB = os.getenv("MYSQL_DB", "uni_rec")
 
+DB_URL = f"mysql+aiomysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}"
 
-store: Dict[str, Any] = {
-    "users": {},
-    "items": {},
-    "reviews": [],
-    "social_edges": [],
-    "feedback": [],
-    "last_recommendations": [],
-}
-
-
-def init_store() -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    snapshot = DATA_DIR / "snapshot.json"
-    if snapshot.exists():
-        data = json.loads(snapshot.read_text(encoding="utf-8"))
-        if "behaviors" in data and "reviews" not in data:
-            data["reviews"] = data.pop("behaviors")
-        store.update(data)
-        return
-    data = generate_data()
-    store.update(data)
-    persist_snapshot()
+engine = create_async_engine(DB_URL, echo=False)
+async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 
-def persist_snapshot() -> None:
-    snapshot = DATA_DIR / "snapshot.json"
-    snapshot.write_text(json.dumps(store, ensure_ascii=False, indent=2), encoding="utf-8")
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Dependency for FastAPI routes"""
+    async with async_session_factory() as session:
+        yield session
 
+# In-memory cache for last recommendations (temporary storage)
+# In production, use Redis
+last_recommendations_cache = {}
 
-def update_store(data: Dict[str, Any]) -> None:
-    if "behaviors" in data and "reviews" not in data:
-        data["reviews"] = data.pop("behaviors")
-    store.update(data)
-    store["feedback"] = []
-    store["last_recommendations"] = []
-    persist_snapshot()
+# Feedback cache (buffer before flush to DB, or just simple in-memory for now)
+# In this refactor, we will write feedback directly to DB
