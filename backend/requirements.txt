@@ -8,5 +8,5 @@ pymysql
 aiomysql
 certifi
 python-dotenv
-
+greenlet
 

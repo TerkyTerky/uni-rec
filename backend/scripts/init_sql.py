@@ -17,7 +17,7 @@ from app.models.sql_models import Base
 async def init_db():
     mysql_user = os.getenv("MYSQL_USER", "root")
     mysql_password = os.getenv("MYSQL_PASSWORD", "")
-    mysql_host = os.getenv("MYSQL_HOST", "127.0.0.1")
+    mysql_host = os.getenv("MYSQL_HOST", "")
     mysql_port = os.getenv("MYSQL_PORT", "3306")
     mysql_db = os.getenv("MYSQL_DB", "uni_rec")
     
