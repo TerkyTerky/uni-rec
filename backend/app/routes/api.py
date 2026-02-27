@@ -107,7 +107,7 @@ async def recommend_items(payload: RecommendRequest, session: AsyncSession = Dep
 
 @router.post("/feedback")
 async def feedback(payload: FeedbackRequest, session: AsyncSession = Depends(get_db)) -> dict:
-    record = await add_feedback(session, payload.reviewerID, payload.asin, payload.action)
+    record = await add_feedback(session, payload.reviewerID, payload.asin, payload.score)
     return {"ok": True, "record": record}
 
 

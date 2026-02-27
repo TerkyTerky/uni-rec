@@ -12,11 +12,10 @@ async def compute_metrics(session: AsyncSession) -> Dict[str, Any]:
     result = await session.execute(select(func.count()).select_from(Item))
     total_items = result.scalar() or 0
     
-    # Feedback Count (approximate by counting recent 'Liked' reviews we inserted)
-    # This is a bit hacky because we don't have a feedback table.
-    # Let's count reviews with summary="Liked"
+    # Feedback Count
+    # Count reviews with summary="Feedback" (new system) or "Liked"/"Disliked"/"Saved" (old system)
     result = await session.execute(
-        select(func.count()).select_from(Review).where(Review.summary == "Liked")
+        select(func.count()).select_from(Review).where(Review.summary.in_(["Feedback", "Liked", "Disliked", "Saved"]))
     )
     feedback_count = result.scalar() or 0
     

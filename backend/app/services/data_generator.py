@@ -88,8 +88,13 @@ async def generate_data(
     reviews: List[Dict[str, Any]] = []
     social_edges: List[Dict[str, Any]] = []
 
-    for i in range(items):
+    # Generate unique Item IDs
+    item_id_set = set()
+    while len(item_id_set) < items:
         asin = f"B{random.randint(1000000, 9999999)}"
+        item_id_set.add(asin)
+    
+    for asin in item_id_set:
         category_path = random.choice(category_paths)
         brand = f"Brand{random.randint(1, 80)}"
         model = f"{random.choice(['X', 'M', 'S', 'Z'])}{random.randint(100, 999)}"
@@ -113,8 +118,13 @@ async def generate_data(
         item["also_buy"] = random.sample(item_ids, k=min(3, len(item_ids)))
         item["also_viewed"] = random.sample(item_ids, k=min(5, len(item_ids)))
 
-    for i in range(users):
+    # Generate unique User IDs
+    user_id_set = set()
+    while len(user_id_set) < users:
         reviewer_id = f"A{random.randint(1000000, 9999999)}"
+        user_id_set.add(reviewer_id)
+        
+    for i, reviewer_id in enumerate(user_id_set):
         reviewer_name = f"Reviewer{i}"
         users_map[reviewer_id] = {
             "reviewerID": reviewer_id,
@@ -122,9 +132,20 @@ async def generate_data(
             "meta": {"cold_start": False},
         }
 
+    # Generate reviews
+    # To avoid duplicate (reviewerID, asin) pairs
+    user_reviewed_items = {uid: set() for uid in users_map.keys()}
+    
     for reviewer_id in users_map:
-        for t in range(behaviors_per_user):
-            asin = random.choice(list(items_map.keys()))
+        target_count = behaviors_per_user
+        # Ensure we don't try to review more items than exist
+        if target_count > len(item_ids):
+            target_count = len(item_ids)
+            
+        # Select random unique items for this user
+        chosen_items = random.sample(item_ids, k=target_count)
+        
+        for t, asin in enumerate(chosen_items):
             template = random.choice(review_templates)
             reviews.append(
                 {
@@ -145,10 +166,13 @@ async def generate_data(
 
     user_list = list(users_map.keys())
     for reviewer_id in user_list:
-        targets = random.sample(user_list, k=min(social_degree, len(user_list)))
+        # Avoid self-loops and duplicate edges
+        potential_targets = [u for u in user_list if u != reviewer_id]
+        if not potential_targets:
+            continue
+            
+        targets = random.sample(potential_targets, k=min(social_degree, len(potential_targets)))
         for target in targets:
-            if target == reviewer_id:
-                continue
             social_edges.append(
                 {
                     "source": reviewer_id,

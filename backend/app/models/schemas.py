@@ -45,7 +45,7 @@ class RecommendResponse(BaseModel):
 class FeedbackRequest(BaseModel):
     reviewerID: str
     asin: str
-    action: str = Field(pattern="^(like|dislike|save)$")
+    score: int = Field(ge=1, le=5)
 
 
 class MetricsResponse(BaseModel):

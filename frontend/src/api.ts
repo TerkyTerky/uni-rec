@@ -16,7 +16,7 @@ export type RecommendPayload = {
 export type FeedbackPayload = {
   reviewerID: string
   asin: string
-  action: "like" | "dislike" | "save"
+  score: number // Changed from action string to numeric score
 }
 
 export type GeneratePayload = {

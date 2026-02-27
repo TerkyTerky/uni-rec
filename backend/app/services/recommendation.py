@@ -199,9 +199,11 @@ async def recommend_stream(
 
 
 async def get_sequence_events(session: AsyncSession, reviewer_id: str) -> List[Dict[str, Any]]:
+    # Join with Item to get item details, but use outer join in case item was deleted or feedback is standalone
+    # Sort by unixReviewTime descending to show latest first
     stmt = (
         select(Review, Item)
-        .join(Item, Review.asin == Item.asin)
+        .outerjoin(Item, Review.asin == Item.asin)
         .where(Review.reviewerID == reviewer_id)
         .order_by(desc(Review.unixReviewTime))
         .limit(20)
@@ -210,15 +212,27 @@ async def get_sequence_events(session: AsyncSession, reviewer_id: str) -> List[D
     
     events = []
     for review, item in result:
-        categories = item.categories or []
-        leaf = categories[0][-1] if categories and categories[0] else "Unknown"
+        title = "Unknown Item"
+        category = "Unknown"
+        if item:
+            title = item.title
+            categories = item.categories or []
+            category = categories[0][-1] if categories and categories[0] else "Unknown"
+            
+        # Special handling for feedback-generated reviews
+        event_type = "review"
+        if review.summary in ["Liked", "Disliked", "Saved"]:
+            event_type = "feedback"
+            
         events.append({
             "asin": review.asin,
             "overall": review.overall,
             "unixReviewTime": review.unixReviewTime,
-            "title": item.title,
-            "category": leaf,
-            "ts": review.unixReviewTime
+            "title": title,
+            "category": category,
+            "ts": review.unixReviewTime,
+            "summary": review.summary, # Expose summary to frontend to distinguish event types
+            "type": event_type
         })
     return events
 

@@ -154,7 +154,7 @@ async def generate_reviews(count: int, product_type: str) -> List[Dict[str, str]
                     "content": prompt
                 },
             ],
-            temperature=1.5,
+            temperature=0.8,
         )
         print(f"[LLM Debug] Raw response: {response}")
         

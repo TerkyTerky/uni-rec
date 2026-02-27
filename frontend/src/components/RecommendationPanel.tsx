@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import StarRating from "./StarRating"
 
 type Item = {
   asin: string
@@ -16,7 +16,7 @@ type Props = {
   summary: string
   items: Item[]
   thinking?: string
-  onFeedback: (asin: string, action: "like" | "dislike" | "save") => void
+  onFeedback: (asin: string, score: number) => void
 }
 
 export default function RecommendationPanel({ summary, items, thinking, onFeedback }: Props) {
@@ -55,16 +55,9 @@ export default function RecommendationPanel({ summary, items, thinking, onFeedba
                 <p className="text-sm text-slate-500">{item.reason}</p>
                 <Badge className="mt-2">{getLeafCategory(item.meta.categories)}</Badge>
               </div>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={() => onFeedback(item.asin, "like")}>
-                  喜欢
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => onFeedback(item.asin, "dislike")}>
-                  不喜欢
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => onFeedback(item.asin, "save")}>
-                  收藏
-                </Button>
+              <div className="flex items-center justify-between mt-2 border-t pt-2">
+                <span className="text-xs text-slate-500">你的评分：</span>
+                <StarRating onChange={(score) => onFeedback(item.asin, score)} />
               </div>
             </li>
           ))}

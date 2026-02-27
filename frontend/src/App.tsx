@@ -142,14 +142,18 @@ export default function App() {
     }
   }
 
-  const handleFeedback = async (asin: string, action: "like" | "dislike" | "save") => {
+  const handleFeedback = async (asin: string, score: number) => {
     await sendFeedback({
       reviewerID: params.reviewerID,
       asin,
-      action
+      score
     })
     const metricRes = await fetchMetrics()
     setMetrics(metricRes.data.metrics)
+    
+    // Refresh timeline
+    const seq = await fetchSequence(params.reviewerID)
+    setSequenceEvents(seq.data.events)
   }
 
   useEffect(() => {
@@ -158,6 +162,13 @@ export default function App() {
       setStartupType(type.data.startup_type)
       const metricRes = await fetchMetrics()
       setMetrics(metricRes.data.metrics)
+      
+      // Load sequence and social graph immediately
+      const seq = await fetchSequence(params.reviewerID)
+      setSequenceEvents(seq.data.events)
+      
+      const graph = await fetchSocialGraph(params.reviewerID)
+      setSocialGraph(graph.data)
     }
     init()
   }, [params.reviewerID, params.threshold])
