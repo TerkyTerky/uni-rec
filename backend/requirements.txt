@@ -9,4 +9,5 @@ aiomysql
 certifi
 python-dotenv
 greenlet
+dotenv
 

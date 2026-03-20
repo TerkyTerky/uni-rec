@@ -3,9 +3,10 @@
 后端
 ```
 cd backend
-uv venv
+<!-- uv venv
 uv pip install -r requirements.txt
-uv run uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload -->
+conda activate backend
 ```
 
 前端

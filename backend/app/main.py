@@ -7,7 +7,6 @@ load_dotenv()
 
 from app.routes.api import router as api_router
 
-
 def create_app() -> FastAPI:
     app = FastAPI(title="uni-rec")
     app.add_middleware(
